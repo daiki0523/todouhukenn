@@ -17,9 +17,9 @@
     body { background-color: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
     /* ヘッダー */
-    header { background: #fff; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 100; }
-    .home-btn { font-size: 1.5rem; background: none; border: none; cursor: pointer; padding: 5px 10px; }
-    .score-area { font-weight: bold; font-size: 1rem; text-align: right; color: #555; }
+    header { background: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 100; }
+    .home-btn { font-size: 1.6rem; background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; }
+    .score-area { font-weight: bold; font-size: 1.2rem; color: #555; }
 
     /* 画面切り替え管理 */
     .screen { position: absolute; top: 60px; bottom: 0; left: 0; right: 0; background: var(--bg); display: none; flex-direction: column; align-items: center; padding: 15px; overflow-y: auto; z-index: 10; }
@@ -34,7 +34,7 @@
     .btn-region:active { background-color: #f0f0f0; }
 
     /* --- ゲーム画面用 --- */
-    #question-box { font-size: 1.3rem; font-weight: bold; margin-bottom: 10px; min-height: 2rem; color: #222; text-align: center;}
+    #question-box { font-size: 1.4rem; font-weight: bold; margin-bottom: 15px; min-height: 2rem; color: #222; text-align: center; display: flex; align-items: center; justify-content: center; }
     
     /* ブロックマップ（CSS Grid） */
     #game-map-container { flex: 1; width: 100%; display: flex; justify-content: center; align-items: center; }
@@ -51,7 +51,6 @@
     }
 
     .pref-cell {
-      background-color: #fff;
       border-radius: 4px;
       display: flex;
       align-items: center;
@@ -64,8 +63,17 @@
       transition: background-color 0.1s, transform 0.1s;
     }
 
+    /* 地方ごとの色分け（淡いパステルカラー） */
+    .bg-tohoku { background-color: #bbdefb; } /* 水色 */
+    .bg-kanto  { background-color: #c8e6c9; } /* 薄緑 */
+    .bg-chubu  { background-color: #fff9c4; } /* 薄黄色 */
+    .bg-kinki  { background-color: #f8bbd0; } /* ピンク */
+    .bg-chugoku{ background-color: #e1bee7; } /* 薄紫 */
+    .bg-shikoku{ background-color: #b2dfdb; } /* 青緑 */
+    .bg-kyushu { background-color: #ffccbc; } /* オレンジ */
+
     /* 状態別のマップセルの色 */
-    .pref-cell.disabled { background-color: #e5e9ec; color: #a0aab2; box-shadow: none; pointer-events: none; }
+    .pref-cell.disabled { background-color: #e5e9ec !important; color: #a0aab2 !important; box-shadow: none; pointer-events: none; }
     .pref-cell:active { transform: scale(0.9); }
     
     /* 名前当てモードの出題ハイライト */
@@ -88,7 +96,7 @@
   <header>
     <button class="home-btn" onclick="showScreen('mode-select')">🏠</button>
     <div class="score-area">
-      <span id="q-progress">--/--</span> | <span id="q-timer">0.0s</span>
+      <span id="q-progress">--/--</span>
     </div>
   </header>
 
@@ -123,8 +131,6 @@
   </div>
 
   <script>
-    // --- 47都道府県 データ (r:行, c:列 で位置を指定) ---
-    // 北海道はtohokuに統合済
     const PREF_DATA = [
       { id: "hokkaido", name: "北海道", region: "tohoku", r: 1, c: 12 },
       { id: "aomori", name: "青森県", region: "tohoku", r: 2, c: 12 }, { id: "akita", name: "秋田県", region: "tohoku", r: 3, c: 11 }, { id: "iwate", name: "岩手県", region: "tohoku", r: 3, c: 12 }, { id: "yamagata", name: "山形県", region: "tohoku", r: 4, c: 11 }, { id: "miyagi", name: "宮城県", region: "tohoku", r: 4, c: 12 }, { id: "fukushima", name: "福島県", region: "tohoku", r: 5, c: 11 },
@@ -139,23 +145,20 @@
     let selectedMode = '';
     let questionPool = [];
     let currentIdx = 0;
-    let timerInterval;
-    let startTime;
 
-    // --- 初期化：マップの生成 ---
+    // --- 初期化：マップの生成（色分け適用） ---
     function initMap() {
       const grid = document.getElementById('japan-grid');
       grid.innerHTML = '';
       PREF_DATA.forEach(p => {
         const cell = document.createElement('div');
         cell.id = `cell-${p.id}`;
-        cell.className = 'pref-cell';
+        // 地方に応じた背景色クラス（bg-***）を付与
+        cell.className = `pref-cell bg-${p.region}`;
         cell.style.gridRow = p.r;
         cell.style.gridColumn = p.c;
-        // マスが小さいので頭文字2文字で表示（北海道→北海、神奈川→神奈）
         cell.textContent = p.name.substring(0, 2);
         
-        // 場所当てモード用のタップイベント
         cell.onclick = () => {
           if (selectedMode === 'location' && !cell.classList.contains('disabled')) {
             checkAnswer(p.id);
@@ -164,14 +167,12 @@
         grid.appendChild(cell);
       });
     }
-    // 起動時にマップ生成
     initMap();
 
     // --- 画面遷移 ---
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       document.getElementById(screenId).classList.add('active');
-      if(screenId === 'mode-select') clearInterval(timerInterval);
     }
 
     function selectMode(mode) {
@@ -181,15 +182,13 @@
 
     // --- ゲーム進行 ---
     function startWithRegion(regionId) {
-      // データの絞り込み
       if (regionId === 'all') {
         questionPool = [...PREF_DATA];
       } else {
         questionPool = PREF_DATA.filter(p => p.region === regionId);
       }
-      questionPool.sort(() => Math.random() - 0.5); // シャッフル
+      questionPool.sort(() => Math.random() - 0.5);
       
-      // マップの表示状態を更新（対象外の地方はグレーアウト）
       PREF_DATA.forEach(p => {
         const cell = document.getElementById(`cell-${p.id}`);
         cell.classList.remove('active-target', 'correct', 'wrong', 'disabled');
@@ -200,16 +199,7 @@
 
       currentIdx = 0;
       showScreen('game-screen');
-      startTimer();
       nextQuestion();
-    }
-
-    function startTimer() {
-      startTime = Date.now();
-      timerInterval = setInterval(() => {
-        const diff = (Date.now() - startTime) / 1000;
-        document.getElementById('q-timer').textContent = diff.toFixed(1) + 's';
-      }, 100);
     }
 
     function nextQuestion() {
@@ -218,41 +208,33 @@
         return;
       }
 
-      // 前の問題の色をリセット
       PREF_DATA.forEach(p => {
         document.getElementById(`cell-${p.id}`).classList.remove('active-target', 'correct', 'wrong');
       });
 
       const q = questionPool[currentIdx];
-      document.getElementById('q-progress').textContent = `${currentIdx + 1}/${questionPool.length}`;
+      document.getElementById('q-progress').textContent = `${currentIdx + 1} / ${questionPool.length}`;
       const qBox = document.getElementById('question-box');
       const choiceGrid = document.getElementById('choices-grid');
       choiceGrid.innerHTML = '';
       choiceGrid.style.display = 'none';
 
       if (selectedMode === 'location') {
-        // 場所当てモード
         qBox.textContent = `「${q.name}」はどこ？`;
       } else {
-        // 名前当てモード
         qBox.textContent = `光っている場所はどこ？`;
         choiceGrid.style.display = 'grid';
         
-        // 対象のマスをピカピカさせる
         document.getElementById(`cell-${q.id}`).classList.add('active-target');
 
-        // 選択肢の生成
         let choices = [q];
         while(choices.length < 4) {
-          // 同じ地方の中からダミーを選ぶ（なければ全国から）
           let pool = PREF_DATA.filter(p => p.region === q.region);
           if (pool.length < 4) pool = PREF_DATA;
-          
           let r = pool[Math.floor(Math.random() * pool.length)];
           if(!choices.find(c => c.id === r.id)) choices.push(r);
         }
         
-        // 選択肢をシャッフルして配置
         choices.sort(() => Math.random() - 0.5).forEach(c => {
           const b = document.createElement('button');
           b.className = 'choice-btn';
@@ -270,16 +252,13 @@
       const clickedCell = document.getElementById(`cell-${id}`);
 
       if (id === q.id) {
-        // 正解
         if (navigator.vibrate) navigator.vibrate(50);
         targetCell.classList.remove('active-target');
         targetCell.classList.add('correct');
         
         currentIdx++;
-        // 0.4秒後に次の問題へ
         setTimeout(nextQuestion, 400); 
       } else {
-        // 不正解
         if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
         if (clickedCell && selectedMode === 'location') {
            clickedCell.classList.add('wrong');
@@ -289,10 +268,8 @@
     }
 
     function finishGame() {
-      clearInterval(timerInterval);
-      const time = document.getElementById('q-timer').textContent;
       setTimeout(() => {
-        alert(`🎉 制覇しました！\nタイム: ${time}`);
+        alert(`🎉 全問クリアしました！\nお疲れ様でした。`);
         showScreen('mode-select');
       }, 300);
     }
