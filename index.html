@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>都道府県マスター</title>
+  <style>
+    /* --------------------------------
+       CSS: スマホ向けUIデザイン
+    -------------------------------- */
+    :root {
+      --primary: #4CAF50;
+      --wrong: #F44336;
+      --bg: #f0f4f8;
+      --text: #333;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+      /* テキスト選択を無効化し、ネイティブアプリ感を出す */
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh; /* 画面の高さを100%に固定 */
+      overflow: hidden;
+    }
+
+    /* ヘッダー（スコア・タイマー） */
+    header {
+      background-color: #fff;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      z-index: 10;
+    }
+
+    .status-bar {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    /* メインエリア（地図表示） */
+    main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* SVG地図のスタイル 
+      今回は模式的な四角形（rect）で関東地方を表現しています。
+      本番ではここを本物の日本地図SVG（path）に差し替えます。
+    */
+    svg {
+      width: 100%;
+      max-height: 100%;
+      touch-action: manipulation;
+    }
+
+    .prefecture {
+      fill: #cccccc;
+      stroke: #ffffff;
+      stroke-width: 2;
+      transition: fill 0.2s ease;
+      cursor: pointer;
+    }
+
+    /* 状態に応じた地図の色 */
+    .prefecture.active { fill: #2196F3; } /* 名前当てモードの出題箇所 */
+    .prefecture.correct { fill: var(--primary); }
+    .prefecture.wrong { fill: var(--wrong); }
+
+    /* ボトムパネル（操作・出題エリア） */
+    #bottom-panel {
+      background-color: #fff;
+      padding: 20px 15px 30px; /* iPhoneの下部バー対策で下余白を多めに */
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      border-radius: 20px 20px 0 0;
+      text-align: center;
+    }
+
+    #question-text {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 20px;
+      min-height: 2em;
+    }
+
+    /* 選択肢ボタン（名前当てモード用） */
+    #choices {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      display: none; /* 初期状態は非表示 */
+    }
+
+    button {
+      padding: 15px;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 10px;
+      background-color: #e0e0e0;
+      color: #333;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.1s;
+    }
+
+    button:active {
+      background-color: #bdbdbd;
+    }
+
+    #start-screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+    }
+
+    .mode-btn {
+      background-color: var(--primary);
+      color: white;
+      margin: 10px;
+      width: 80%;
+      padding: 20px;
+      font-size: 1.3rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="start-screen">
+    <h1 style="margin-bottom: 30px;">都道府県マスター<br>(関東デモ版)</h1>
+    <button class="mode-btn" onclick="startGame('location')">地図から探す（場所当て）</button>
+    <button class="mode-btn" onclick="startGame('name')">名前を当てる（名前当て）</button>
+  </div>
+
+  <header>
+    <div class="status-bar">問題: <span id="q-count">0/7</span></div>
+    <div class="status-bar">タイム: <span id="timer">0.0</span>秒</div>
+  </header>
+
+  <main>
+    <svg viewBox="0 0 300 300" id="map-svg">
+      <rect id="gunma" class="prefecture" x="40" y="40" width="80" height="60" rx="5" />
+      <text x="80" y="75" font-size="14" text-anchor="middle" fill="#555" pointer-events="none">群馬</text>
+      <rect id="tochigi" class="prefecture" x="130" y="40" width="80" height="60" rx="5" />
+      <text x="170" y="75" font-size="14" text-anchor="middle" fill="#555" pointer-events="none">栃木</text>
+      <rect id="ibaraki" class="prefecture" x="220" y="40" width="60" height="100" rx="5" />
+      <text x="250" y="95" font-size="14" text-anchor="middle" fill="#555" pointer-events="none">茨城</text>
+      <rect id="saitama" class="prefecture" x="40" y="110" width="130" height="50" rx="5" />
+      <text x="105" y="140" font-size="14" text-anchor="middle" fill="#555" pointer-events="none">埼玉</text>
+      <rect id="tokyo" class="prefecture" x="40" y="170" width="100" height="40" rx="5" />
+      <text x="90" y="195" font-size="14" text-anchor="middle" fill="#555" pointer-events="none">東京</text>
+      <rect id="chiba" class="prefecture" x="180" y="110" width="100" height="100" rx="5" />
+      <text x="230" y="165" font-size="14" text-anchor="middle" fill="#555" pointer-events="none">千葉</text>
+      <rect id="kanagawa" class="prefecture" x="40" y="220" width="90" height="50" rx="5" />
+      <text x="85" y="250" font-size="14" text-anchor="middle" fill="#555" pointer-events="none">神奈川</text>
+    </svg>
+  </main>
+
+  <div id="bottom-panel">
+    <div id="question-text"></div>
+    <div id="choices">
+      <button onclick="checkAnswer(this.dataset.id)" id="btn-0"></button>
+      <button onclick="checkAnswer(this.dataset.id)" id="btn-1"></button>
+      <button onclick="checkAnswer(this.dataset.id)" id="btn-2"></button>
+      <button onclick="checkAnswer(this.dataset.id)" id="btn-3"></button>
+    </div>
+  </div>
+
+  <script>
+    /* --------------------------------
+       JavaScript: アプリのコアロジック
+    -------------------------------- */
+    // 1. データ定義（今回は関東地方）
+    const prefectures = [
+      { id: 'gunma', name: '群馬県' },
+      { id: 'tochigi', name: '栃木県' },
+      { id: 'ibaraki', name: '茨城県' },
+      { id: 'saitama', name: '埼玉県' },
+      { id: 'chiba', name: '千葉県' },
+      { id: 'tokyo', name: '東京都' },
+      { id: 'kanagawa', name: '神奈川県' }
+    ];
+
+    // 2. 状態管理変数
+    let currentMode = ''; // 'location' or 'name'
+    let questionPool = [];
+    let currentQuestion = null;
+    let questionCount = 0;
+    const totalQuestions = prefectures.length;
+    
+    // 苦手記録用（Local Storageから読み込み）
+    let mistakes = JSON.parse(localStorage.getItem('pref_mistakes')) || {};
+
+    // タイムアタック用
+    let startTime;
+    let timerInterval;
+
+    // 3. UI要素の取得
+    const startScreen = document.getElementById('start-screen');
+    const qText = document.getElementById('question-text');
+    const qCountDisplay = document.getElementById('q-count');
+    const timerDisplay = document.getElementById('timer');
+    const choicesDiv = document.getElementById('choices');
+    const mapElements = document.querySelectorAll('.prefecture');
+
+    // 4. ゲーム開始
+    function startGame(mode) {
+      currentMode = mode;
+      startScreen.style.display = 'none';
+      questionCount = 0;
+      
+      // 出題プールの作成（エビングハウス・苦手克服ロジック）
+      generateQuestionPool();
+      
+      // 地図の初期化
+      mapElements.forEach(el => {
+        el.classList.remove('active', 'correct', 'wrong');
+        // 場所当てモードの時のタップイベント登録
+        el.onclick = () => {
+          if (currentMode === 'location') checkAnswer(el.id);
+        };
+      });
+
+      // タイマー開始
+      startTime = Date.now();
+      timerInterval = setInterval(() => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        timerDisplay.textContent = elapsed.toFixed(1);
+      }, 100);
+
+      nextQuestion();
+    }
+
+    // 5. 出題プールの生成（苦手なものを優先的に入れるロジック）
+    function generateQuestionPool() {
+      questionPool = [];
+      // 基本となる全県を追加
+      let basePool = [...prefectures];
+      
+      // Fisher-Yatesアルゴリズムでシャッフル
+      for(let i = basePool.length - 1; i > 0; i--){
+        const r = Math.floor(Math.random() * (i + 1));
+        [basePool[i], basePool[r]] = [basePool[r], basePool[i]];
+      }
+
+      // 過去に間違えた回数に応じて、出題プール内で優先度を上げる（簡易実装）
+      basePool.forEach(pref => {
+        questionPool.push(pref);
+        // 間違い回数が多ければ、配列の先頭付近に再配置するなど工夫が可能
+        // ここでは全問1回ずつ出題するシンプルな構成にしています。
+      });
+    }
+
+    // 6. 次の問題を出題
+    function nextQuestion() {
+      if (questionCount >= totalQuestions) {
+        endGame();
+        return;
+      }
+
+      // すべての地図の色をリセット
+      mapElements.forEach(el => el.classList.remove('active', 'correct', 'wrong'));
+
+      currentQuestion = questionPool[questionCount];
+      questionCount++;
+      qCountDisplay.textContent = `${questionCount}/${totalQuestions}`;
+
+      if (currentMode === 'location') {
+        // 【場所当てモード】
+        choicesDiv.style.display = 'none';
+        qText.textContent = `${currentQuestion.name}はどこ？`;
+        qText.style.color = 'var(--text)';
+      } else {
+        // 【名前当てモード】
+        choicesDiv.style.display = 'grid';
+        qText.textContent = `ここはどこでしょう？`;
+        
+        // 地図上の対象をハイライト
+        document.getElementById(currentQuestion.id).classList.add('active');
+
+        // 選択肢の生成（正解1 ＋ ダミー3）
+        let options = [currentQuestion];
+        let dummies = prefectures.filter(p => p.id !== currentQuestion.id);
+        
+        // ダミーをシャッフルして3つ抽出
+        dummies.sort(() => 0.5 - Math.random());
+        options = options.concat(dummies.slice(0, 3));
+        
+        // 選択肢をシャッフル
+        options.sort(() => 0.5 - Math.random());
+
+        // ボタンにセット
+        for (let i = 0; i < 4; i++) {
+          const btn = document.getElementById(`btn-${i}`);
+          btn.textContent = options[i].name;
+          btn.dataset.id = options[i].id;
+        }
+      }
+    }
+
+    // 7. 正誤判定
+    function checkAnswer(selectedId) {
+      if (!currentQuestion) return;
+
+      const isCorrect = (selectedId === currentQuestion.id);
+      const targetElement = document.getElementById(currentQuestion.id);
+
+      // スマホのバイブレーション機能（対応機種のみ）
+      if (navigator.vibrate) {
+        navigator.vibrate(isCorrect ? 50 : [50, 50, 50]); // 正解は短く1回、不正解はブルブルブル
+      }
+
+      if (isCorrect) {
+        // 正解演出
+        targetElement.classList.remove('active');
+        targetElement.classList.add('correct');
+        qText.textContent = '正解！';
+        qText.style.color = 'var(--primary)';
+        
+        // 苦手記録の減算（0未満にはしない）
+        if(mistakes[currentQuestion.id] > 0) mistakes[currentQuestion.id]--;
+        
+        currentQuestion = null; // 連続タップ防止
+        setTimeout(nextQuestion, 600); // 0.6秒後に次へ
+      } else {
+        // 不正解演出
+        const wrongElement = document.getElementById(selectedId);
+        if (wrongElement) wrongElement.classList.add('wrong');
+        
+        qText.textContent = 'ざんねん！';
+        qText.style.color = 'var(--wrong)';
+        
+        // 苦手記録の加算
+        mistakes[currentQuestion.id] = (mistakes[currentQuestion.id] || 0) + 1;
+        
+        setTimeout(() => {
+           if(wrongElement) wrongElement.classList.remove('wrong');
+           if (currentMode === 'location') qText.textContent = `${currentQuestion.name}はどこ？`;
+           qText.style.color = 'var(--text)';
+        }, 800);
+      }
+      
+      // データの保存
+      localStorage.setItem('pref_mistakes', JSON.stringify(mistakes));
+    }
+
+    // 8. ゲーム終了
+    function endGame() {
+      clearInterval(timerInterval);
+      const finalTime = timerDisplay.textContent;
+      
+      qText.textContent = `クリア！ タイム: ${finalTime}秒`;
+      choicesDiv.style.display = 'none';
+      
+      setTimeout(() => {
+        alert(`全国制覇達成！\nクリアタイム: ${finalTime}秒`);
+        startScreen.style.display = 'flex';
+        // 苦手な都道府県TOP3などをアラートで出すことも可能
+      }, 1000);
+    }
+  </script>
+</body>
+</html>
