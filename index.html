@@ -9,45 +9,78 @@
       --primary: #4CAF50;
       --secondary: #2196F3;
       --wrong: #F44336;
-      --bg: #f8f9fa;
+      --bg: #f4f7f6;
       --text: #333;
     }
     
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Helvetica Neue", Arial, sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
     body { background-color: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
     /* ヘッダー */
-    header {
-      background: #fff; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 100;
-    }
+    header { background: #fff; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 100; }
     .home-btn { font-size: 1.5rem; background: none; border: none; cursor: pointer; padding: 5px 10px; }
-    .score-area { font-weight: bold; font-size: 0.9rem; text-align: right; }
+    .score-area { font-weight: bold; font-size: 1rem; text-align: right; color: #555; }
 
     /* 画面切り替え管理 */
-    .screen { position: absolute; top: 60px; bottom: 0; left: 0; right: 0; background: var(--bg); display: none; flex-direction: column; align-items: center; padding: 20px; overflow-y: auto; z-index: 10; }
+    .screen { position: absolute; top: 60px; bottom: 0; left: 0; right: 0; background: var(--bg); display: none; flex-direction: column; align-items: center; padding: 15px; overflow-y: auto; z-index: 10; }
     .screen.active { display: flex; }
 
     /* ボタン類 */
-    .btn {
-      width: 100%; max-width: 300px; padding: 18px; margin: 8px 0; border: none; border-radius: 12px;
-      font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: transform 0.1s;
-    }
-    .btn:active { transform: scale(0.98); opacity: 0.8; }
+    .btn { width: 100%; max-width: 320px; padding: 16px; margin: 8px 0; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: transform 0.1s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn:active { transform: scale(0.96); box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
     .btn-main { background-color: var(--primary); color: white; }
     .btn-sub { background-color: var(--secondary); color: white; }
-    .btn-region { background-color: #fff; border: 2px solid #ddd; color: #555; }
+    .btn-region { background-color: #fff; color: #444; border: 2px solid #e0e0e0; box-shadow: none; padding: 12px; }
+    .btn-region:active { background-color: #f0f0f0; }
 
-    /* ゲーム画面用 */
-    #game-map-container { flex: 1; width: 100%; display: flex; justify-content: center; align-items: center; position: relative; }
-    .map-placeholder { width: 90%; height: 250px; background: #eee; border: 2px dashed #ccc; border-radius: 10px; display: flex; align-items: center; justify-content: center; text-align: center; color: #999; }
+    /* --- ゲーム画面用 --- */
+    #question-box { font-size: 1.3rem; font-weight: bold; margin-bottom: 10px; min-height: 2rem; color: #222; text-align: center;}
     
-    /* 正解・不正解アニメーション */
-    @keyframes correct-pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
-    .correct-flash { color: var(--primary); font-size: 2rem; position: absolute; font-weight: bold; pointer-events: none; }
+    /* ブロックマップ（CSS Grid） */
+    #game-map-container { flex: 1; width: 100%; display: flex; justify-content: center; align-items: center; }
+    
+    #japan-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      grid-template-rows: repeat(13, 1fr);
+      gap: 3px;
+      width: 100%;
+      max-width: 400px;
+      aspect-ratio: 12 / 13;
+      margin: 0 auto;
+    }
 
-    #choices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 400px; padding-bottom: 20px; }
-    .choice-btn { padding: 15px; border-radius: 10px; border: none; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-size: 1rem; font-weight: bold; }
+    .pref-cell {
+      background-color: #fff;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(9px, 3vw, 13px);
+      font-weight: bold;
+      color: #333;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+      transition: background-color 0.1s, transform 0.1s;
+    }
+
+    /* 状態別のマップセルの色 */
+    .pref-cell.disabled { background-color: #e5e9ec; color: #a0aab2; box-shadow: none; pointer-events: none; }
+    .pref-cell:active { transform: scale(0.9); }
+    
+    /* 名前当てモードの出題ハイライト */
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.15); box-shadow: 0 0 10px var(--secondary); } 100% { transform: scale(1); } }
+    .pref-cell.active-target { background-color: var(--secondary) !important; color: white !important; animation: pulse 1s infinite; z-index: 2; border: 2px solid #0d47a1; }
+    
+    /* 正解・不正解 */
+    .pref-cell.correct { background-color: var(--primary) !important; color: white !important; transform: scale(1.1); z-index: 2; transition: all 0.3s; }
+    .pref-cell.wrong { background-color: var(--wrong) !important; color: white !important; animation: shake 0.3s; }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+
+    /* 選択肢ボタンエリア */
+    #choices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 400px; margin-top: 15px; padding-bottom: 20px; }
+    .choice-btn { padding: 15px; border-radius: 10px; border: none; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-size: 1.1rem; font-weight: bold; color: #333; }
+    .choice-btn:active { background-color: #e0e0e0; }
   </style>
 </head>
 <body>
@@ -55,56 +88,52 @@
   <header>
     <button class="home-btn" onclick="showScreen('mode-select')">🏠</button>
     <div class="score-area">
-      <div id="q-progress">準備中...</div>
-      <div id="q-timer">0.0s</div>
+      <span id="q-progress">--/--</span> | <span id="q-timer">0.0s</span>
     </div>
   </header>
 
   <div id="mode-select" class="screen active">
-    <h2 style="margin-bottom:20px;">学習モードを選択</h2>
-    <button class="btn btn-main" onclick="selectMode('location')">場所を当てる<br><span style="font-size:0.8rem; font-weight:normal;">名前を見て地図をタップ</span></button>
-    <button class="btn btn-sub" onclick="selectMode('name')">名前を当てる<br><span style="font-size:0.8rem; font-weight:normal;">地図を見て名前を選択</span></button>
+    <h2 style="margin-bottom:25px; color:#333;">学習モード</h2>
+    <button class="btn btn-main" onclick="selectMode('location')">場所を当てる<br><span style="font-size:0.85rem; font-weight:normal;">名前を見て、地図をタップ</span></button>
+    <button class="btn btn-sub" onclick="selectMode('name')">名前を当てる<br><span style="font-size:0.85rem; font-weight:normal;">光った場所の、名前を選ぶ</span></button>
   </div>
 
   <div id="region-select" class="screen">
-    <h2 style="margin-bottom:20px;">どの地方を練習する？</h2>
-    <button class="btn btn-main" onclick="startWithRegion('all')">全国 (47都道府県)</button>
+    <h2 style="margin-bottom:20px; color:#333;">どの地方を練習する？</h2>
+    <button class="btn btn-main" onclick="startWithRegion('all')" style="margin-bottom: 15px;">全国 (47都道府県)</button>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 320px;">
-      <button class="btn btn-region" onclick="startWithRegion('hokkaido')">北海道</button>
-      <button class="btn btn-region" onclick="startWithRegion('tohoku')">東北</button>
+      <button class="btn btn-region" onclick="startWithRegion('tohoku')">北海道・東北</button>
       <button class="btn btn-region" onclick="startWithRegion('kanto')">関東</button>
       <button class="btn btn-region" onclick="startWithRegion('chubu')">中部</button>
       <button class="btn btn-region" onclick="startWithRegion('kinki')">近畿</button>
       <button class="btn btn-region" onclick="startWithRegion('chugoku')">中国</button>
       <button class="btn btn-region" onclick="startWithRegion('shikoku')">四国</button>
-      <button class="btn btn-region" onclick="startWithRegion('kyushu')">九州</button>
+      <button class="btn btn-region" onclick="startWithRegion('kyushu')">九州・沖縄</button>
     </div>
   </div>
 
   <div id="game-screen" class="screen">
-    <div id="question-box" style="font-size: 1.4rem; font-weight: bold; margin-bottom: 20px;"></div>
+    <div id="question-box"></div>
     
     <div id="game-map-container">
-      <div class="map-placeholder">
-        ここに日本地図SVGが表示されます<br>
-        (デモ版のためタップした想定で進行)
-      </div>
+      <div id="japan-grid"></div>
     </div>
 
     <div id="choices-grid"></div>
   </div>
 
   <script>
-    // --- 47都道府県 全データ ---
+    // --- 47都道府県 データ (r:行, c:列 で位置を指定) ---
+    // 北海道はtohokuに統合済
     const PREF_DATA = [
-      { id: "hokkaido", name: "北海道", region: "hokkaido" },
-      { id: "aomori", name: "青森県", region: "tohoku" }, { id: "iwate", name: "岩手県", region: "tohoku" }, { id: "miyagi", name: "宮城県", region: "tohoku" }, { id: "akita", name: "秋田県", region: "tohoku" }, { id: "yamagata", name: "山形県", region: "tohoku" }, { id: "fukushima", name: "福島県", region: "tohoku" },
-      { id: "ibaraki", name: "茨城県", region: "kanto" }, { id: "tochigi", name: "栃木県", region: "kanto" }, { id: "gunma", name: "群馬県", region: "kanto" }, { id: "saitama", name: "埼玉県", region: "kanto" }, { id: "chiba", name: "千葉県", region: "kanto" }, { id: "tokyo", name: "東京都", region: "kanto" }, { id: "kanagawa", name: "神奈川県", region: "kanto" },
-      { id: "niigata", name: "新潟県", region: "chubu" }, { id: "toyama", name: "富山県", region: "chubu" }, { id: "ishikawa", name: "石川県", region: "chubu" }, { id: "fukui", name: "福井県", region: "chubu" }, { id: "yamanashi", name: "山梨県", region: "chubu" }, { id: "nagano", name: "長野県", region: "chubu" }, { id: "gifu", name: "岐阜県", region: "chubu" }, { id: "shizuoka", name: "静岡県", region: "chubu" }, { id: "aichi", name: "愛知県", region: "chubu" },
-      { id: "mie", name: "三重県", region: "kinki" }, { id: "shiga", name: "滋賀県", region: "kinki" }, { id: "kyoto", name: "京都府", region: "kinki" }, { id: "osaka", name: "大阪府", region: "kinki" }, { id: "hyogo", name: "兵庫県", region: "kinki" }, { id: "nara", name: "奈良県", region: "kinki" }, { id: "wakayama", name: "和歌山県", region: "kinki" },
-      { id: "tottori", name: "鳥取県", region: "chugoku" }, { id: "shimane", name: "島根県", region: "chugoku" }, { id: "okayama", name: "岡山県", region: "chugoku" }, { id: "hiroshima", name: "広島県", region: "chugoku" }, { id: "yamaguchi", name: "山口県", region: "chugoku" },
-      { id: "tokushima", name: "徳島県", region: "shikoku" }, { id: "kagawa", name: "香川県", region: "shikoku" }, { id: "ehime", name: "愛媛県", region: "shikoku" }, { id: "kochi", name: "高知県", region: "shikoku" },
-      { id: "fukuoka", name: "福岡県", region: "kyushu" }, { id: "saga", name: "佐賀県", region: "kyushu" }, { id: "nagasaki", name: "長崎県", region: "kyushu" }, { id: "kumamoto", name: "熊本県", region: "kyushu" }, { id: "oita", name: "大分県", region: "kyushu" }, { id: "miyazaki", name: "宮崎県", region: "kyushu" }, { id: "kagoshima", name: "鹿児島県", region: "kyushu" }, { id: "okinawa", name: "沖縄県", region: "kyushu" }
+      { id: "hokkaido", name: "北海道", region: "tohoku", r: 1, c: 12 },
+      { id: "aomori", name: "青森県", region: "tohoku", r: 2, c: 12 }, { id: "akita", name: "秋田県", region: "tohoku", r: 3, c: 11 }, { id: "iwate", name: "岩手県", region: "tohoku", r: 3, c: 12 }, { id: "yamagata", name: "山形県", region: "tohoku", r: 4, c: 11 }, { id: "miyagi", name: "宮城県", region: "tohoku", r: 4, c: 12 }, { id: "fukushima", name: "福島県", region: "tohoku", r: 5, c: 11 },
+      { id: "ibaraki", name: "茨城県", region: "kanto", r: 6, c: 12 }, { id: "tochigi", name: "栃木県", region: "kanto", r: 6, c: 11 }, { id: "gunma", name: "群馬県", region: "kanto", r: 6, c: 10 }, { id: "saitama", name: "埼玉県", region: "kanto", r: 7, c: 10 }, { id: "chiba", name: "千葉県", region: "kanto", r: 7, c: 12 }, { id: "tokyo", name: "東京都", region: "kanto", r: 7, c: 11 }, { id: "kanagawa", name: "神奈川県", region: "kanto", r: 8, c: 11 },
+      { id: "niigata", name: "新潟県", region: "chubu", r: 5, c: 10 }, { id: "toyama", name: "富山県", region: "chubu", r: 5, c: 9 }, { id: "ishikawa", name: "石川県", region: "chubu", r: 5, c: 8 }, { id: "fukui", name: "福井県", region: "chubu", r: 6, c: 8 }, { id: "yamanashi", name: "山梨県", region: "chubu", r: 8, c: 10 }, { id: "nagano", name: "長野県", region: "chubu", r: 7, c: 9 }, { id: "gifu", name: "岐阜県", region: "chubu", r: 6, c: 9 }, { id: "shizuoka", name: "静岡県", region: "chubu", r: 9, c: 9 }, { id: "aichi", name: "愛知県", region: "chubu", r: 8, c: 9 },
+      { id: "mie", name: "三重県", region: "kinki", r: 9, c: 8 }, { id: "shiga", name: "滋賀県", region: "kinki", r: 7, c: 8 }, { id: "kyoto", name: "京都府", region: "kinki", r: 7, c: 7 }, { id: "osaka", name: "大阪府", region: "kinki", r: 8, c: 7 }, { id: "hyogo", name: "兵庫県", region: "kinki", r: 8, c: 6 }, { id: "nara", name: "奈良県", region: "kinki", r: 8, c: 8 }, { id: "wakayama", name: "和歌山県", region: "kinki", r: 9, c: 7 },
+      { id: "tottori", name: "鳥取県", region: "chugoku", r: 8, c: 5 }, { id: "shimane", name: "島根県", region: "chugoku", r: 8, c: 4 }, { id: "okayama", name: "岡山県", region: "chugoku", r: 9, c: 5 }, { id: "hiroshima", name: "広島県", region: "chugoku", r: 9, c: 4 }, { id: "yamaguchi", name: "山口県", region: "chugoku", r: 8, c: 3 },
+      { id: "tokushima", name: "徳島県", region: "shikoku", r: 11, c: 5 }, { id: "kagawa", name: "香川県", region: "shikoku", r: 10, c: 5 }, { id: "ehime", name: "愛媛県", region: "shikoku", r: 10, c: 4 }, { id: "kochi", name: "高知県", region: "shikoku", r: 11, c: 4 },
+      { id: "fukuoka", name: "福岡県", region: "kyushu", r: 9, c: 2 }, { id: "saga", name: "佐賀県", region: "kyushu", r: 10, c: 1 }, { id: "nagasaki", name: "長崎県", region: "kyushu", r: 11, c: 1 }, { id: "kumamoto", name: "熊本県", region: "kyushu", r: 10, c: 2 }, { id: "oita", name: "大分県", region: "kyushu", r: 9, c: 3 }, { id: "miyazaki", name: "宮崎県", region: "kyushu", r: 10, c: 3 }, { id: "kagoshima", name: "鹿児島県", region: "kyushu", r: 11, c: 2 }, { id: "okinawa", name: "沖縄県", region: "kyushu", r: 13, c: 1 }
     ];
 
     let selectedMode = '';
@@ -113,7 +142,32 @@
     let timerInterval;
     let startTime;
 
-    // --- 画面遷移ロジック ---
+    // --- 初期化：マップの生成 ---
+    function initMap() {
+      const grid = document.getElementById('japan-grid');
+      grid.innerHTML = '';
+      PREF_DATA.forEach(p => {
+        const cell = document.createElement('div');
+        cell.id = `cell-${p.id}`;
+        cell.className = 'pref-cell';
+        cell.style.gridRow = p.r;
+        cell.style.gridColumn = p.c;
+        // マスが小さいので頭文字2文字で表示（北海道→北海、神奈川→神奈）
+        cell.textContent = p.name.substring(0, 2);
+        
+        // 場所当てモード用のタップイベント
+        cell.onclick = () => {
+          if (selectedMode === 'location' && !cell.classList.contains('disabled')) {
+            checkAnswer(p.id);
+          }
+        };
+        grid.appendChild(cell);
+      });
+    }
+    // 起動時にマップ生成
+    initMap();
+
+    // --- 画面遷移 ---
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       document.getElementById(screenId).classList.add('active');
@@ -125,18 +179,25 @@
       showScreen('region-select');
     }
 
-    // --- ゲーム開始ロジック ---
+    // --- ゲーム進行 ---
     function startWithRegion(regionId) {
-      // 地方フィルタリング
+      // データの絞り込み
       if (regionId === 'all') {
         questionPool = [...PREF_DATA];
       } else {
         questionPool = PREF_DATA.filter(p => p.region === regionId);
       }
+      questionPool.sort(() => Math.random() - 0.5); // シャッフル
       
-      // シャッフル
-      questionPool.sort(() => Math.random() - 0.5);
-      
+      // マップの表示状態を更新（対象外の地方はグレーアウト）
+      PREF_DATA.forEach(p => {
+        const cell = document.getElementById(`cell-${p.id}`);
+        cell.classList.remove('active-target', 'correct', 'wrong', 'disabled');
+        if (regionId !== 'all' && p.region !== regionId) {
+          cell.classList.add('disabled');
+        }
+      });
+
       currentIdx = 0;
       showScreen('game-screen');
       startTimer();
@@ -157,25 +218,41 @@
         return;
       }
 
+      // 前の問題の色をリセット
+      PREF_DATA.forEach(p => {
+        document.getElementById(`cell-${p.id}`).classList.remove('active-target', 'correct', 'wrong');
+      });
+
       const q = questionPool[currentIdx];
-      document.getElementById('q-progress').textContent = `${currentIdx + 1} / ${questionPool.length}`;
+      document.getElementById('q-progress').textContent = `${currentIdx + 1}/${questionPool.length}`;
       const qBox = document.getElementById('question-box');
       const choiceGrid = document.getElementById('choices-grid');
       choiceGrid.innerHTML = '';
+      choiceGrid.style.display = 'none';
 
       if (selectedMode === 'location') {
-        qBox.textContent = `${q.name} を選んで！`;
-        // 本来はSVG地図を有効にするが、デモとして地図の代わりにボタンを表示
-        const demoMap = document.querySelector('.map-placeholder');
-        demoMap.innerHTML = `（地図を模したボタン）<br><button class="btn btn-main" onclick="checkAnswer('${q.id}')">${q.name}をタップした想定</button>`;
+        // 場所当てモード
+        qBox.textContent = `「${q.name}」はどこ？`;
       } else {
-        qBox.textContent = `ここはどこ？（青い場所）`;
-        // 選択肢作成
+        // 名前当てモード
+        qBox.textContent = `光っている場所はどこ？`;
+        choiceGrid.style.display = 'grid';
+        
+        // 対象のマスをピカピカさせる
+        document.getElementById(`cell-${q.id}`).classList.add('active-target');
+
+        // 選択肢の生成
         let choices = [q];
         while(choices.length < 4) {
-          let r = PREF_DATA[Math.floor(Math.random() * PREF_DATA.length)];
+          // 同じ地方の中からダミーを選ぶ（なければ全国から）
+          let pool = PREF_DATA.filter(p => p.region === q.region);
+          if (pool.length < 4) pool = PREF_DATA;
+          
+          let r = pool[Math.floor(Math.random() * pool.length)];
           if(!choices.find(c => c.id === r.id)) choices.push(r);
         }
+        
+        // 選択肢をシャッフルして配置
         choices.sort(() => Math.random() - 0.5).forEach(c => {
           const b = document.createElement('button');
           b.className = 'choice-btn';
@@ -186,23 +263,38 @@
       }
     }
 
+    // --- 正誤判定 ---
     function checkAnswer(id) {
       const q = questionPool[currentIdx];
+      const targetCell = document.getElementById(`cell-${q.id}`);
+      const clickedCell = document.getElementById(`cell-${id}`);
+
       if (id === q.id) {
-        currentIdx++;
+        // 正解
         if (navigator.vibrate) navigator.vibrate(50);
-        nextQuestion();
+        targetCell.classList.remove('active-target');
+        targetCell.classList.add('correct');
+        
+        currentIdx++;
+        // 0.4秒後に次の問題へ
+        setTimeout(nextQuestion, 400); 
       } else {
-        if (navigator.vibrate) navigator.vibrate([50, 100, 50]);
-        alert("ちがいます！");
+        // 不正解
+        if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+        if (clickedCell && selectedMode === 'location') {
+           clickedCell.classList.add('wrong');
+           setTimeout(() => clickedCell.classList.remove('wrong'), 400);
+        }
       }
     }
 
     function finishGame() {
       clearInterval(timerInterval);
       const time = document.getElementById('q-timer').textContent;
-      alert(`クリア！\nタイム: ${time}`);
-      showScreen('mode-select');
+      setTimeout(() => {
+        alert(`🎉 制覇しました！\nタイム: ${time}`);
+        showScreen('mode-select');
+      }, 300);
     }
   </script>
 </body>
